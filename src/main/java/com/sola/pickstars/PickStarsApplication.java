@@ -28,8 +28,7 @@ public class PickStarsApplication {
 
         while (true) {
 
-            String homeUrl =
-                    "https://www-hj.douyin.com/aweme/v1/web/aweme/post/"
+            String homeUrl = "https://www-hj.douyin.com/aweme/v1/web/aweme/post/"
                             + "?device_platform=webapp"
                             + "&aid=6383"
                             + "&channel=channel_pc_web"
@@ -38,13 +37,12 @@ public class PickStarsApplication {
                             + "&count=18"
                             + "&publish_video_strategy_type=2";
 
-            System.out.println("\n==============================");
             System.out.println("请求 max_cursor = " + maxCursor);
 
             String homeJson = httpGet(homeUrl);
             JsonNode root = MAPPER.readTree(homeJson);
 
-            System.out.println("作品数：" + root.path("aweme_list").size());
+            System.out.println("本页作品数：" + root.path("aweme_list").size());
             System.out.println("has_more：" + root.path("has_more").asInt());
             System.out.println("max_cursor：" + root.path("max_cursor").asLong());
 
@@ -54,10 +52,6 @@ public class PickStarsApplication {
             }
 
             int total = awemeList.size();
-
-            System.out.println("================================");
-            System.out.println("本次准备下载 " + total + " 个作品");
-            System.out.println("================================");
 
             totalall += total;
 
@@ -92,13 +86,10 @@ public class PickStarsApplication {
                     authorDir.mkdirs();
                 }
 
-
                 long createTime = aweme.path("create_time").asLong();
-
 
                 String date = new java.text.SimpleDateFormat("yyyy-MM-dd")
                         .format(new java.util.Date(createTime * 1000));
-
 
                 String title  = aweme.path("desc")
                         .asText("no_title");
@@ -109,32 +100,20 @@ public class PickStarsApplication {
 
                 title = title.trim();
 
-
-
                 String fileName = date + " " + title + ".mp4";
-
 
                 // 防止特殊字符
                 fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
 
-
                 String videoUrl = null;
-
-
-                // ==================================================
-                // 1. 优先检查 aweme.video
-                // ==================================================
 
                 JsonNode videoNode =
                         aweme.path("video");
-
 
                 JsonNode urlList =
                         videoNode
                                 .path("play_addr")
                                 .path("url_list");
-
-
 
                 if (urlList.isArray()) {
 
@@ -152,10 +131,7 @@ public class PickStarsApplication {
                             break;
                         }
                     }
-
                 }
-
-
 
                 if (videoUrl == null) {
 
@@ -188,26 +164,16 @@ public class PickStarsApplication {
                                 }
                             }
 
-
                             if (videoUrl != null) {
                                 break;
                             }
-
                         }
-
                     }
-
                 }
-
-
-                // ==================================================
-                // 下载
-                // ==================================================
 
                 if (videoUrl == null) {
 
                     System.out.println("[SKIP] 没找到视频地址");
-
                     continue;
                 }
 
@@ -217,15 +183,11 @@ public class PickStarsApplication {
                                 + File.separator
                                 + fileName;
 
-
-                System.out.println("[下载]");
                 System.out.println(savePath);
-
 
 //                download(videoUrl, savePath);
 
-
-                System.out.println("[完成]");
+                System.out.println("[下载完成]");
             }
 
             int hasMore = root.path("has_more").asInt();
@@ -240,10 +202,9 @@ public class PickStarsApplication {
 
             System.out.println("下一页 max_cursor = " + maxCursor);
 
-
         }
 
-        System.out.println("总数量为"+totalall);
+        System.out.println("\n---总数量为"+totalall);
 
     }
 
