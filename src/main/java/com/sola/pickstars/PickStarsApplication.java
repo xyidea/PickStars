@@ -105,18 +105,102 @@ public class PickStarsApplication {
                 // 防止特殊字符
                 baseFileName = baseFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
 
-                JsonNode videoNode = aweme.path("video");
+                //判断图文类型
+                int isMultiContent = aweme.path("is_multi_content").asInt();
 
-                JsonNode bitRateList = videoNode.path("bit_rate");
+                if (isMultiContent == 1) {
 
-                // ================= 视频类型 =================
-                if (bitRateList.isArray() && bitRateList.size() > 0) {
+                    JsonNode images = aweme.path("images");
+
+                    System.out.println("[图文作品,共 " + images.size() + " 条]");
+
+                    for (int index = 0; index < images.size(); index++) {
+
+                        JsonNode image = images.get(index);
+
+                        int fileIndex = index + 1;
+
+                        int livePhotoType = image.path("live_photo_type").asInt();
+
+                        if (livePhotoType == 1) {
+
+                            System.out.println("\n图文作品第 " + fileIndex + " 条，为视频");
+
+                            String videoUrl = null;
+
+                            JsonNode urlList =
+                                    image.path("video")
+                                            .path("play_addr")
+                                            .path("url_list");
+
+                            for (JsonNode urlNode : urlList) {
+
+                                String url = urlNode.asText();
+
+                                if (url.contains("aweme/v1/play")) {
+
+                                    videoUrl = url;
+
+                                    break;
+                                }
+                            }
+
+                            if (videoUrl == null) {
+                                continue;
+                            }
+
+                            String savePath =
+                                    authorDir.getAbsolutePath()
+                                            + File.separator
+                                            + baseFileName + fileIndex + ".mp4";
+
+                            System.out.println(videoUrl);
+                            System.out.println(savePath);
+
+                            download(videoUrl, savePath);
+
+                            System.out.println("[图文-视频 下载完成]");
+                        }
+
+                        else {
+
+                            System.out.println("\n图文作品第 " + fileIndex + " 条，为图片");
+
+                            JsonNode urlList =
+                                    image.path("download_url_list");
+
+                            if (urlList.size() == 0) {
+                                continue;
+                            }
+
+                            String imageUrl = urlList.get(2).asText();
+
+                            String savePath =
+                                    authorDir.getAbsolutePath()
+                                            + File.separator
+                                            + baseFileName + fileIndex + ".jpg";
+
+                            System.out.println(imageUrl);
+                            System.out.println(savePath);
+
+                            download(imageUrl, savePath);
+
+                            System.out.println("[图文-图片 下载完成]");
+                        }
+
+                    }
+                }
+                else{
 
                     System.out.println("[普通视频]");
 
                     int maxWidth = -1;
 
                     JsonNode bestPlayAddr = null;
+
+                    JsonNode videoNode = aweme.path("video");
+
+                    JsonNode bitRateList = videoNode.path("bit_rate");
 
                     for (JsonNode bitRate : bitRateList) {
 
@@ -161,92 +245,9 @@ public class PickStarsApplication {
                         System.out.println(videoUrl);
                         System.out.println(savePath);
 
-//                        download(videoUrl, savePath);
+                        download(videoUrl, savePath);
 
                         System.out.println("[视频-视频下载完成]");
-                    }
-                }
-                else{
-
-                    JsonNode images = aweme.path("images");
-
-                    System.out.println("[图文作品,共" + images.size() + "条]");
-
-                    for (int index = 0; index < images.size(); index++) {
-
-                        JsonNode image = images.get(index);
-
-                        int fileIndex = index + 1;
-
-                        int livePhotoType = image.path("live_photo_type").asInt();
-
-                        if (livePhotoType == 1) {
-
-                            System.out.println("\n图文作品第" + fileIndex + "条，为视频");
-
-                            String videoUrl = null;
-
-                            JsonNode urlList =
-                                    image.path("video")
-                                            .path("play_addr")
-                                            .path("url_list");
-
-                            for (JsonNode urlNode : urlList) {
-
-                                String url = urlNode.asText();
-
-                                if (url.contains("aweme/v1/play")) {
-
-                                    videoUrl = url;
-
-                                    break;
-                                }
-                            }
-
-                            if (videoUrl == null) {
-                                continue;
-                            }
-
-                            String savePath =
-                                    authorDir.getAbsolutePath()
-                                            + File.separator
-                                            + baseFileName + fileIndex + ".mp4";
-
-                            System.out.println(videoUrl);
-                            System.out.println(savePath);
-
-//                            download(videoUrl, savePath);
-
-                            System.out.println("[图文-视频下载完成]");
-                        }
-
-                        else {
-
-                            System.out.println("\n图文作品第" + fileIndex + "条，为图片");
-
-                            JsonNode urlList =
-                                    image.path("download_url_list")
-                                            .path("url_list");
-
-                            if (urlList.size() == 0) {
-                                continue;
-                            }
-
-                            String imageUrl = urlList.get(2).asText();
-
-                            String savePath =
-                                    authorDir.getAbsolutePath()
-                                            + File.separator
-                                            + baseFileName + fileIndex + ".jpg";
-
-                            System.out.println(imageUrl);
-                            System.out.println(savePath);
-
-//                            download(imageUrl, savePath);
-
-                            System.out.println("[图文-图片下载完成]");
-                        }
-
                     }
                 }
 
@@ -266,7 +267,7 @@ public class PickStarsApplication {
 
         }
 
-        System.out.println("\n---总数量为"+totalall);
+        System.out.println("\n---作品总数量为" + totalall + "---");
 
     }
 
@@ -315,6 +316,8 @@ public class PickStarsApplication {
              OutputStream out = new FileOutputStream(filePath)) {
             in.transferTo(out);
         }
+
+//        System.out.println("【测试用，下载方法已注释】");
     }
 
 }
