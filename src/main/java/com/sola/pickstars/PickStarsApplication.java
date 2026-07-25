@@ -100,94 +100,156 @@ public class PickStarsApplication {
 
                 title = title.trim();
 
-                String fileName = date + " " + title + ".mp4";
+                String baseFileName = date + " " + title;
 
                 // 防止特殊字符
-                fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+                baseFileName = baseFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
 
-                String videoUrl = null;
+                JsonNode videoNode = aweme.path("video");
 
-                JsonNode videoNode =
-                        aweme.path("video");
+                JsonNode bitRateList = videoNode.path("bit_rate");
 
-                JsonNode urlList =
-                        videoNode
-                                .path("play_addr")
-                                .path("url_list");
+                // ================= 视频类型 =================
+                if (bitRateList.isArray() && bitRateList.size() > 0) {
 
-                if (urlList.isArray()) {
+                    System.out.println("[普通视频]");
 
-                    for (JsonNode urlNode : urlList) {
+                    int maxWidth = -1;
 
-                        String url = urlNode.asText();
+                    JsonNode bestPlayAddr = null;
 
-                        if (url.contains("aweme/v1/play")) {
+                    for (JsonNode bitRate : bitRateList) {
 
-                            videoUrl = url;
+                        JsonNode playAddr = bitRate.path("play_addr");
 
-                            System.out.println("[类型] 普通视频");
-                            System.out.println(videoUrl);
+                        int width = playAddr.path("width").asInt();
 
-                            break;
+                        if (width > maxWidth) {
+                            maxWidth = width;
+                            bestPlayAddr = playAddr;
                         }
                     }
-                }
 
-                if (videoUrl == null) {
+                    if (bestPlayAddr != null) {
 
-                    JsonNode images = aweme.path("images");
+                        JsonNode urlList = bestPlayAddr.path("url_list");
 
-                    if (images.isArray()) {
-                        for (JsonNode image : images) {
+                        String videoUrl = null;
 
-                            JsonNode imageUrlList =
-                                    image
-                                            .path("video")
-                                            .path("play_addr")
-                                            .path("url_list");
+                        for (JsonNode urlNode : urlList) {
 
-                            if (imageUrlList.isArray()) {
+                            String url = urlNode.asText();
 
-                                for (JsonNode urlNode : imageUrlList) {
+                            if (url.contains("aweme/v1/play")) {
 
-                                    String url = urlNode.asText();
+                                videoUrl = url;
 
-                                    if (url.contains("aweme/v1/play")) {
-
-                                        videoUrl = url;
-
-                                        System.out.println("[类型] 图文视频");
-                                        System.out.println(videoUrl);
-
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (videoUrl != null) {
                                 break;
                             }
                         }
+
+                        if (videoUrl == null) {
+                            System.out.println("未找到视频地址");
+                            continue;
+                        }
+
+                        String savePath =
+                                authorDir.getAbsolutePath()
+                                        + File.separator
+                                        + baseFileName + ".mp4";
+
+                        System.out.println(videoUrl);
+                        System.out.println(savePath);
+
+//                        download(videoUrl, savePath);
+
+                        System.out.println("[视频-视频下载完成]");
+                    }
+                }
+                else{
+
+                    JsonNode images = aweme.path("images");
+
+                    System.out.println("[图文作品,共" + images.size() + "条]");
+
+                    for (int index = 0; index < images.size(); index++) {
+
+                        JsonNode image = images.get(index);
+
+                        int fileIndex = index + 1;
+
+                        int livePhotoType = image.path("live_photo_type").asInt();
+
+                        if (livePhotoType == 1) {
+
+                            System.out.println("\n图文作品第" + fileIndex + "条，为视频");
+
+                            String videoUrl = null;
+
+                            JsonNode urlList =
+                                    image.path("video")
+                                            .path("play_addr")
+                                            .path("url_list");
+
+                            for (JsonNode urlNode : urlList) {
+
+                                String url = urlNode.asText();
+
+                                if (url.contains("aweme/v1/play")) {
+
+                                    videoUrl = url;
+
+                                    break;
+                                }
+                            }
+
+                            if (videoUrl == null) {
+                                continue;
+                            }
+
+                            String savePath =
+                                    authorDir.getAbsolutePath()
+                                            + File.separator
+                                            + baseFileName + fileIndex + ".mp4";
+
+                            System.out.println(videoUrl);
+                            System.out.println(savePath);
+
+//                            download(videoUrl, savePath);
+
+                            System.out.println("[图文-视频下载完成]");
+                        }
+
+                        else {
+
+                            System.out.println("\n图文作品第" + fileIndex + "条，为图片");
+
+                            JsonNode urlList =
+                                    image.path("download_url_list")
+                                            .path("url_list");
+
+                            if (urlList.size() == 0) {
+                                continue;
+                            }
+
+                            String imageUrl = urlList.get(2).asText();
+
+                            String savePath =
+                                    authorDir.getAbsolutePath()
+                                            + File.separator
+                                            + baseFileName + fileIndex + ".jpg";
+
+                            System.out.println(imageUrl);
+                            System.out.println(savePath);
+
+//                            download(imageUrl, savePath);
+
+                            System.out.println("[图文-图片下载完成]");
+                        }
+
                     }
                 }
 
-                if (videoUrl == null) {
-
-                    System.out.println("[SKIP] 没找到视频地址");
-                    continue;
-                }
-
-
-                String savePath =
-                        authorDir.getAbsolutePath()
-                                + File.separator
-                                + fileName;
-
-                System.out.println(savePath);
-
-//                download(videoUrl, savePath);
-
-                System.out.println("[下载完成]");
             }
 
             int hasMore = root.path("has_more").asInt();
