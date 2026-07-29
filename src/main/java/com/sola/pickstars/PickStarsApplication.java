@@ -103,7 +103,7 @@ public class PickStarsApplication {
                 String baseFileName = date + " " + title;
 
                 // 防止特殊字符
-                baseFileName = baseFileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+                baseFileName = baseFileName.replaceAll("[\\\\/:*?\"<>|。]", "");
 
                 //判断图文类型
                 int isMultiContent = aweme.path("is_multi_content").asInt();
@@ -152,12 +152,15 @@ public class PickStarsApplication {
                             String savePath =
                                     authorDir.getAbsolutePath()
                                             + File.separator
-                                            + baseFileName + fileIndex + ".mp4";
+                                            + baseFileName
+                                            + "_"
+                                            + fileIndex
+                                            + ".mp4";
 
                             System.out.println(videoUrl);
                             System.out.println(savePath);
 
-                            download(videoUrl, savePath);
+                            downloadWithRetry(videoUrl, savePath);
 
                             System.out.println("[图文-视频 下载完成]");
                         }
@@ -178,12 +181,15 @@ public class PickStarsApplication {
                             String savePath =
                                     authorDir.getAbsolutePath()
                                             + File.separator
-                                            + baseFileName + fileIndex + ".jpg";
+                                            + baseFileName
+                                            + "_"
+                                            + fileIndex
+                                            + ".jpg";
 
                             System.out.println(imageUrl);
                             System.out.println(savePath);
 
-                            download(imageUrl, savePath);
+                            downloadWithRetry(imageUrl, savePath);
 
                             System.out.println("[图文-图片 下载完成]");
                         }
@@ -245,7 +251,7 @@ public class PickStarsApplication {
                         System.out.println(videoUrl);
                         System.out.println(savePath);
 
-                        download(videoUrl, savePath);
+                        downloadWithRetry(videoUrl, savePath);
 
                         System.out.println("[视频-视频下载完成]");
                     }
@@ -299,6 +305,8 @@ public class PickStarsApplication {
         conn.setRequestProperty("User-Agent", "Mozilla/5.0");
         conn.setRequestProperty("Referer", "https://www.douyin.com/");
         conn.setRequestProperty("Cookie", COOKIE);
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(30000);
 
         try (InputStream in = conn.getInputStream()) {
             return new String(in.readAllBytes());
@@ -317,7 +325,42 @@ public class PickStarsApplication {
             in.transferTo(out);
         }
 
-//        System.out.println("【测试用，下载方法已注释】");
+    }
+
+    /* ================= 增加下载重试 ================= */
+    public static void downloadWithRetry(String urlStr, String filePath) {
+
+        int maxRetry = 3;
+
+        for (int i = 1; i <= maxRetry; i++) {
+
+            try {
+
+                System.out.println("开始下载，第 " + i + " 次尝试");
+
+                download(urlStr, filePath);
+
+                System.out.println("下载成功");
+
+                return;
+
+            } catch (Exception e) {
+
+                System.out.println("下载失败：" + e.getMessage());
+
+                if (i == maxRetry) {
+                    System.out.println("重试结束，放弃下载");
+                    return;
+                }
+
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ignored) {
+                }
+
+            }
+
+        }
     }
 
 }
