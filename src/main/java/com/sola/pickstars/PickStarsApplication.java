@@ -2,10 +2,14 @@ package com.sola.pickstars;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sola.pickstars.douyindl.DownloadItem;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 public class PickStarsApplication {
@@ -20,11 +24,17 @@ public class PickStarsApplication {
     public static void main(String[] args) throws Exception {
         System.out.println("====== Douyin Downloader Start ======");
 
+        List<DownloadItem> downloadItems= new ArrayList<>();
+
         loadConfig();
 
         long maxCursor = 0;
 
-        long totalall = 0;
+        long totalAll = 0;
+
+        int round = 1;
+
+        int maxRound = 3;
 
         while (true) {
 
@@ -53,7 +63,7 @@ public class PickStarsApplication {
 
             int total = awemeList.size();
 
-            totalall += total;
+            totalAll += total;
 
 
             File dir = new File(DOWNLOAD_DIR);
@@ -157,12 +167,9 @@ public class PickStarsApplication {
                                             + fileIndex
                                             + ".mp4";
 
-                            System.out.println(videoUrl);
-                            System.out.println(savePath);
+                            downloadItems.add(new DownloadItem(2,awemeId,videoUrl, savePath));
 
-                            downloadWithRetry(videoUrl, savePath);
-
-                            System.out.println("[图文-视频 下载完成]");
+                            System.out.println("[加入下载队列]");
                         }
 
                         else {
@@ -186,12 +193,9 @@ public class PickStarsApplication {
                                             + fileIndex
                                             + ".jpg";
 
-                            System.out.println(imageUrl);
-                            System.out.println(savePath);
+                            downloadItems.add(new DownloadItem(3,awemeId,imageUrl, savePath));
 
-                            downloadWithRetry(imageUrl, savePath);
-
-                            System.out.println("[图文-图片 下载完成]");
+                            System.out.println("[加入下载队列]");
                         }
 
                     }
@@ -248,12 +252,9 @@ public class PickStarsApplication {
                                         + File.separator
                                         + baseFileName + ".mp4";
 
-                        System.out.println(videoUrl);
-                        System.out.println(savePath);
+                        downloadItems.add(new DownloadItem(1,awemeId,videoUrl, savePath));
 
-                        downloadWithRetry(videoUrl, savePath);
-
-                        System.out.println("[视频-视频下载完成]");
+                        System.out.println("[加入下载队列]");
                     }
                 }
 
@@ -273,7 +274,69 @@ public class PickStarsApplication {
 
         }
 
-        System.out.println("\n---作品总数量为" + totalall + "---");
+        System.out.println("\n---作品总数量为" + totalAll + "---");
+
+        System.out.println(downloadItems);
+
+        while (!downloadItems.isEmpty()&& round <= maxRound) {
+
+            System.out.println("\n===== 第 " + round + " 轮下载 =====");
+
+            Iterator<DownloadItem> iterator = downloadItems.iterator();
+
+            while (iterator.hasNext()) {
+
+                DownloadItem task = iterator.next();
+
+                try {
+
+                    download(task.getDownloadUrl(), task.getSavePath());
+
+                    System.out.println("\n============下载成功============");
+                    switch (task.getItemType()){
+                        case 1:
+                            System.out.println("视频");
+                            break;
+                        case 2:
+                            System.out.println("图文-视频");
+                            break;
+                        case 3:
+                            System.out.println("图文-图片");
+                            break;
+                    }
+                    System.out.println(task.getAwemeId());
+                    System.out.println(task.getSavePath());
+                    System.out.println(task.getDownloadUrl());
+
+                    iterator.remove();
+
+                } catch (Exception e) {
+
+                    System.out.println("\n============下载失败============");
+                    System.out.println(task.getAwemeId());
+                    System.out.println(task.getSavePath());
+                    System.out.println(task.getDownloadUrl());
+
+                }
+
+            }
+
+            round++;
+
+            Thread.sleep(5000);
+
+        }
+        // ===== 所有轮次结束以后 =====
+
+        if (!downloadItems.isEmpty()) {
+
+            System.out.println(downloadItems);
+
+        } else {
+
+            System.out.println("\n全部下载成功！共" + totalAll + "条");
+
+        }
 
     }
 
@@ -325,42 +388,6 @@ public class PickStarsApplication {
             in.transferTo(out);
         }
 
-    }
-
-    /* ================= 增加下载重试 ================= */
-    public static void downloadWithRetry(String urlStr, String filePath) {
-
-        int maxRetry = 3;
-
-        for (int i = 1; i <= maxRetry; i++) {
-
-            try {
-
-                System.out.println("开始下载，第 " + i + " 次尝试");
-
-                download(urlStr, filePath);
-
-                System.out.println("下载成功");
-
-                return;
-
-            } catch (Exception e) {
-
-                System.out.println("下载失败：" + e.getMessage());
-
-                if (i == maxRetry) {
-                    System.out.println("重试结束，放弃下载");
-                    return;
-                }
-
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ignored) {
-                }
-
-            }
-
-        }
     }
 
 }
