@@ -7,10 +7,7 @@ import com.sola.pickstars.douyindl.DownloadItem;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class PickStarsApplication {
 
@@ -276,7 +273,16 @@ public class PickStarsApplication {
 
         System.out.println("\n---作品总数量为" + totalAll + "---");
 
-        System.out.println(downloadItems);
+        System.out.println("解析完成，共 " + downloadItems.size() + " 个文件待下载");
+        System.out.println("输入 y 开始下载：");
+
+        Scanner scanner = new Scanner(System.in);
+        String input = scanner.nextLine();
+
+        if (!"y".equalsIgnoreCase(input)) {
+            System.out.println("用户取消下载");
+            return;
+        }
 
         while (!downloadItems.isEmpty()&& round <= maxRound) {
 
@@ -368,8 +374,8 @@ public class PickStarsApplication {
         conn.setRequestProperty("User-Agent", "Mozilla/5.0");
         conn.setRequestProperty("Referer", "https://www.douyin.com/");
         conn.setRequestProperty("Cookie", COOKIE);
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(30000);
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(10000);
 
         try (InputStream in = conn.getInputStream()) {
             return new String(in.readAllBytes());
@@ -382,6 +388,8 @@ public class PickStarsApplication {
         conn.setRequestProperty("User-Agent", "Mozilla/5.0");
         conn.setRequestProperty("Referer", "https://www.douyin.com/");
         conn.setRequestProperty("Cookie", COOKIE);
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(60000);
 
         try (InputStream in = conn.getInputStream();
              OutputStream out = new FileOutputStream(filePath)) {
