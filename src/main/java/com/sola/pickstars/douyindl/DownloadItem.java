@@ -9,13 +9,13 @@ public class DownloadItem {
 
     private String downloadUrl;
 
-    private String SavePath;
+    private String savePath;
 
     public DownloadItem(int itemType, String awemeId, String downloadUrl, String getSavePath) {
         this.itemType = itemType;
         this.awemeId = awemeId;
         this.downloadUrl = downloadUrl;
-        this.SavePath = getSavePath;
+        this.savePath = getSavePath;
     }
 
     @Override
@@ -24,7 +24,7 @@ public class DownloadItem {
                 "itemType=" + itemType +
                 ", awemeId='" + awemeId + '\'' +
                 ", downloadUrl='" + downloadUrl + '\'' +
-                ", SavePath='" + SavePath + '\'' +
+                ", savePath='" + savePath + '\'' +
                 '}';
     }
 
@@ -41,6 +41,6 @@ public class DownloadItem {
     }
 
     public String getSavePath() {
-        return SavePath;
+        return savePath;
     }
 }

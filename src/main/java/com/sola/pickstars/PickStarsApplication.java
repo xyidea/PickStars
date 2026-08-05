@@ -33,7 +33,7 @@ public class PickStarsApplication {
 
         //下载重试maxRound轮
         int round = 1;
-        int maxRound = 3;
+        int maxRound = 5;
 
         //记录第几页，其实是网络请求的页数
         int page = 1;
@@ -270,7 +270,7 @@ public class PickStarsApplication {
 
         while (!downloadItems.isEmpty()&& round <= maxRound) {
 
-            System.out.println("\n======= 第 " + round + " 轮下载 =======");
+            System.out.println("\n========== 第 " + round + " 轮下载 ==========");
 
             Iterator<DownloadItem> iterator = downloadItems.iterator();
 
@@ -284,13 +284,13 @@ public class PickStarsApplication {
 
                     successCount++;
 
-                    System.out.println("\n进度" + successCount + "/" + totalDownloadCount);
+                    System.out.println("\n下载进度 " + successCount + "/" + totalDownloadCount);
 
                     iterator.remove();
 
                 } catch (Exception e) {
 
-                    System.out.println("\n===失败一条===");
+                    System.out.println("\n=== 失败一条 ===");
                     System.out.println(task.getAwemeId());
                     System.out.println(task.getSavePath());
                     System.out.println(task.getDownloadUrl());
@@ -301,7 +301,7 @@ public class PickStarsApplication {
 
             round++;
 
-            Thread.sleep(5000);
+            Thread.sleep(60000);
 
         }
         // ===== 所有轮次结束以后 =====
@@ -341,7 +341,7 @@ public class PickStarsApplication {
     public static String httpGet(String urlStr) throws IOException {
 
         try {
-            Thread.sleep(500 + new Random().nextInt(2000));
+            Thread.sleep(1000 + new Random().nextInt(3000));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
