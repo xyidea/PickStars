@@ -25,13 +25,22 @@ public class PickStarsApplication {
 
         loadConfig();
 
+        //用来判断是否有下一页
         long maxCursor = 0;
 
-        long totalAll = 0;
+        //计算作品数量
+        long awemeCount = 0;
 
+        //下载重试maxRound轮
         int round = 1;
-
         int maxRound = 3;
+
+        //记录第几页，其实是网络请求的页数
+        int page = 1;
+
+        //记录下载成功的数量和文件总数
+        int successCount = 0;
+        int totalDownloadCount;
 
         while (true) {
 
@@ -44,14 +53,8 @@ public class PickStarsApplication {
                             + "&count=18"
                             + "&publish_video_strategy_type=2";
 
-            System.out.println("请求 max_cursor = " + maxCursor);
-
             String homeJson = httpGet(homeUrl);
             JsonNode root = MAPPER.readTree(homeJson);
-
-            System.out.println("本页作品数：" + root.path("aweme_list").size());
-            System.out.println("has_more：" + root.path("has_more").asInt());
-            System.out.println("max_cursor：" + root.path("max_cursor").asLong());
 
             JsonNode awemeList = root.path("aweme_list");
             if (!awemeList.isArray() || awemeList.size() == 0) {
@@ -60,7 +63,7 @@ public class PickStarsApplication {
 
             int total = awemeList.size();
 
-            totalAll += total;
+            awemeCount += total;
 
 
             File dir = new File(DOWNLOAD_DIR);
@@ -74,10 +77,6 @@ public class PickStarsApplication {
                 JsonNode aweme = awemeList.get(i);
 
                 String awemeId = aweme.path("aweme_id").asText();
-
-                System.out.println("\n========== 第 " + (i + 1) + " 个作品 ==========");
-                System.out.println("awemeId = " + awemeId);
-
 
                 String nickname = aweme
                         .path("author")
@@ -119,8 +118,6 @@ public class PickStarsApplication {
 
                     JsonNode images = aweme.path("images");
 
-                    System.out.println("[图文作品,共 " + images.size() + " 条]");
-
                     for (int index = 0; index < images.size(); index++) {
 
                         JsonNode image = images.get(index);
@@ -130,8 +127,6 @@ public class PickStarsApplication {
                         int livePhotoType = image.path("live_photo_type").asInt();
 
                         if (livePhotoType == 1) {
-
-                            System.out.println("\n图文作品第 " + fileIndex + " 条，为视频");
 
                             String videoUrl = null;
 
@@ -165,13 +160,9 @@ public class PickStarsApplication {
                                             + ".mp4";
 
                             downloadItems.add(new DownloadItem(2,awemeId,videoUrl, savePath));
-
-                            System.out.println("[加入下载队列]");
                         }
 
                         else {
-
-                            System.out.println("\n图文作品第 " + fileIndex + " 条，为图片");
 
                             JsonNode urlList =
                                     image.path("download_url_list");
@@ -191,15 +182,11 @@ public class PickStarsApplication {
                                             + ".jpg";
 
                             downloadItems.add(new DownloadItem(3,awemeId,imageUrl, savePath));
-
-                            System.out.println("[加入下载队列]");
                         }
 
                     }
                 }
                 else{
-
-                    System.out.println("[普通视频]");
 
                     int maxWidth = -1;
 
@@ -250,16 +237,15 @@ public class PickStarsApplication {
                                         + baseFileName + ".mp4";
 
                         downloadItems.add(new DownloadItem(1,awemeId,videoUrl, savePath));
-
-                        System.out.println("[加入下载队列]");
                     }
                 }
 
             }
 
-            int hasMore = root.path("has_more").asInt();
+            System.out.println("\n第" + page + "页解析完成，本页作品数：" + root.path("aweme_list").size());
+            page++;
 
-            System.out.println("has_more = " + hasMore);
+            int hasMore = root.path("has_more").asInt();
 
             if (hasMore == 0) {
                 break;
@@ -267,13 +253,11 @@ public class PickStarsApplication {
 
             maxCursor = root.path("max_cursor").asLong();
 
-            System.out.println("下一页 max_cursor = " + maxCursor);
-
         }
 
-        System.out.println("\n---作品总数量为" + totalAll + "---");
+        totalDownloadCount = downloadItems.size();
 
-        System.out.println("解析完成，共 " + downloadItems.size() + " 个文件待下载");
+        System.out.println("\n全部解析完成，作品总数为 " + awemeCount + "。共 " + downloadItems.size() + " 个文件待下载。");
         System.out.println("输入 y 开始下载：");
 
         Scanner scanner = new Scanner(System.in);
@@ -286,7 +270,7 @@ public class PickStarsApplication {
 
         while (!downloadItems.isEmpty()&& round <= maxRound) {
 
-            System.out.println("\n===== 第 " + round + " 轮下载 =====");
+            System.out.println("\n======= 第 " + round + " 轮下载 =======");
 
             Iterator<DownloadItem> iterator = downloadItems.iterator();
 
@@ -298,27 +282,15 @@ public class PickStarsApplication {
 
                     download(task.getDownloadUrl(), task.getSavePath());
 
-                    System.out.println("\n============下载成功============");
-                    switch (task.getItemType()){
-                        case 1:
-                            System.out.println("视频");
-                            break;
-                        case 2:
-                            System.out.println("图文-视频");
-                            break;
-                        case 3:
-                            System.out.println("图文-图片");
-                            break;
-                    }
-                    System.out.println(task.getAwemeId());
-                    System.out.println(task.getSavePath());
-                    System.out.println(task.getDownloadUrl());
+                    successCount++;
+
+                    System.out.println("\n进度" + successCount + "/" + totalDownloadCount);
 
                     iterator.remove();
 
                 } catch (Exception e) {
 
-                    System.out.println("\n============下载失败============");
+                    System.out.println("\n===失败一条===");
                     System.out.println(task.getAwemeId());
                     System.out.println(task.getSavePath());
                     System.out.println(task.getDownloadUrl());
@@ -336,11 +308,12 @@ public class PickStarsApplication {
 
         if (!downloadItems.isEmpty()) {
 
+            System.out.println("\n以下" + downloadItems.size() + "条文件下载失败");
             System.out.println(downloadItems);
 
         } else {
 
-            System.out.println("\n全部下载成功！共" + totalAll + "条");
+            System.out.println("\n全部下载成功！共" + totalDownloadCount + "个文件");
 
         }
 
@@ -362,13 +335,17 @@ public class PickStarsApplication {
         COOKIE = p.getProperty("douyin.cookie");
         SEC_USER_ID = p.getProperty("douyin.secUserId");
         DOWNLOAD_DIR = p.getProperty("douyin.downloadDir");
-
-        System.out.println("[CONFIG] secUserId = " + SEC_USER_ID);
-        System.out.println("[CONFIG] downloadDir = " + DOWNLOAD_DIR);
     }
 
     /* ================= HTTP 工具 ================= */
     public static String httpGet(String urlStr) throws IOException {
+
+        try {
+            Thread.sleep(500 + new Random().nextInt(2000));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("User-Agent", "Mozilla/5.0");
@@ -383,6 +360,13 @@ public class PickStarsApplication {
     }
 
     public static void download(String urlStr, String filePath) throws IOException {
+
+        try {
+            Thread.sleep(500 + new Random().nextInt(2000));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("User-Agent", "Mozilla/5.0");
@@ -390,6 +374,12 @@ public class PickStarsApplication {
         conn.setRequestProperty("Cookie", COOKIE);
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(60000);
+
+        int code = conn.getResponseCode();
+
+        if (code != 200) {
+            throw new IOException("HTTP " + code);
+        }
 
         try (InputStream in = conn.getInputStream();
              OutputStream out = new FileOutputStream(filePath)) {
